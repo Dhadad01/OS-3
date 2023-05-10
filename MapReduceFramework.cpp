@@ -46,7 +46,6 @@ Job();
 
     std::vector<Worker> m_workers;
     pthread_barrier_t m_shuffle_barrier;
-    pthread_mutex_t m_exit_mutex;
     pthread_cond_t m_exit_condition;
     pthread_mutex_t m_exit_run_join_mutex;
     bool m_exited;
@@ -64,7 +63,6 @@ Job::Job()
         m_workers.emplace_back(id);
     }
 
-    (void) pthread_mutex_init(&m_exit_mutex, NULL);
     (void) pthread_mutex_init(&m_exit_run_join_mutex, NULL);
     (void) pthread_cond_init(&m_exit_condition, NULL);
 
@@ -75,7 +73,6 @@ Job::~Job()
     /*
      * TODO: destroy all semapjores, mutexes, condition variables, etc...
      */
-    (void) pthread_mutex_destroy(&m_exit_mutex);
     (void) pthread_mutex_destroy(&m_exit_run_join_mutex);
     (void) pthread_cond_destroy(&m_exit_condition);
 }
@@ -111,30 +108,18 @@ void waitForJob(JobHandle job)
     if (j != nullptr) {
         if (not j->m_exited) {
             if (pthread_mutex_trylock(&j->m_exit_run_join_mutex) == LOCKED) {
-                printf("%s: trylock locked successfully - waiting using pthread_join\n", __FUNCTION__);
-                fflush(stdout);
 
                 // calling pthread_join is critical section.V
                 for (const Worker &t: j->m_workers) {
                     (void) pthread_join(t.m_thread_handle, NULL);
                 }
-
-                printf("%s: finished waiting for all threads (using pthread_join)\n", __FUNCTION__);
-                fflush(stdout);
                 j->m_exited = true;
                 (void) pthread_cond_broadcast(&j->m_exit_condition);
 
                 pthread_mutex_unlock(&j->m_exit_run_join_mutex);
             } else {
-                printf("%s: trylock failed to lock - waiting using pthread_cond_wait\n", __FUNCTION__);
-                fflush(stdout);
-                (void) pthread_cond_wait(&j->m_exit_condition, &j->m_exit_mutex);
-                printf("%s: pthread_cond_wait - condition satisfied.\n", __FUNCTION__);
-                fflush(stdout);
+                (void) pthread_cond_wait(&j->m_exit_condition, &j->m_exit_run_join_mutex);
             }
-        } else {
-            printf("%s: all workers are done\n", __FUNCTION__);
-            fflush(stdout);
         }
     }
 }
