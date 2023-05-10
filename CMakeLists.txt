@@ -8,6 +8,7 @@ add_executable(os_ex3
                MapReduceClient.h
                MapReduceFramework.h MapReduceFramework.cpp
                )
+target_compile_options(os_ex3 PUBLIC -Wall -Wextra -Werror -pedantic)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
