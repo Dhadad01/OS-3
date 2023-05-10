@@ -1,0 +1,14 @@
+cmake_minimum_required(VERSION 3.18)
+project(os_ex3)
+
+set(CMAKE_CXX_STANDARD 11)
+
+add_executable(os_ex3
+               main.cpp
+               MapReduceClient.h
+               MapReduceFramework.h MapReduceFramework.cpp
+               )
+
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+target_link_libraries(os_ex3 PRIVATE Threads::Threads)
