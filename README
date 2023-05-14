@@ -3,5 +3,12 @@ David Hadad - 314618448
 Eyal Royee - 318307915
 
 Submitted files:
-Makefile - the recipe for building the MapReduceFramework library.
-
+1) Makefile               - the recipe for building the MapReduceFramework library.
+2) MapReduceFramework.cpp - the implementation of the MapReduceFramework library.
+3) pdebug.hpp             - a header for debug prints.
+4) pdebug.cpp             - implementation for pdebug.hpp.
+5) worker.hpp             - a header for managing workers (threads) invoked for the completion of a specific job.
+6) worker.cpp             - implementation for worker.hpp.
+7) job.hpp                - a header for managing MapReduceFramework jobs.
+8) job.cpp                - implementation for job.hpp.
+9) README                 - a brief overview of the submitted assignment.
