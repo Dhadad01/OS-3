@@ -26,6 +26,8 @@ getJobState(JobHandle job, JobState* state)
   if (!j and !state) {
     j->save_state_to(state);
   }
+
+
 }
 
 JobHandle

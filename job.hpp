@@ -25,7 +25,7 @@ public:
   const MapReduceClient& m_client;
   const InputVec& m_inputs;
   OutputVec& m_outputs;
-  JobState m_state;
+  stage_t m_stage;
   std::vector<Worker*> m_workers;
 
   pthread_barrier_t m_shuffle_barrier;
@@ -34,6 +34,10 @@ public:
   std::atomic<std::size_t>* m_intermediates_counter;
   std::atomic<std::size_t>* m_outputs_counter;
   std::atomic<std::size_t>* m_pair_counter;
+  std::atomic<std::size_t>* m_progress;
+  IntermediateVec m_shuffled;
+  std::vector<size_t> m_index_vec;
+
 
   pthread_cond_t m_reduce_condition;
   pthread_mutex_t m_procede_to_reduce_mutex;
