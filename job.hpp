@@ -10,36 +10,36 @@
 
 #include "worker.hpp"
 
-
-class Job {
+class Job
+{
 public:
-    Job(const MapReduceClient &client,
-        const InputVec &inputVec,
-        OutputVec &outputVec,
-        int multiThreadLevel);
+  Job(const MapReduceClient& client,
+      const InputVec& inputVec,
+      OutputVec& outputVec,
+      int multiThreadLevel);
 
-    ~Job();
+  ~Job();
 
-    void save_state_to(JobState *state);
+  void save_state_to(JobState* state);
 
-    const MapReduceClient &m_client;
-    const InputVec &m_inputs;
-    OutputVec &m_outputs;
-    JobState m_state;
-    std::vector<Worker *> m_workers;
+  const MapReduceClient& m_client;
+  const InputVec& m_inputs;
+  OutputVec& m_outputs;
+  JobState m_state;
+  std::vector<Worker*> m_workers;
 
-    pthread_barrier_t m_shuffle_barrier;
-    pthread_cond_t m_exit_condition;
-    pthread_mutex_t m_exit_run_join_mutex;
-    std::atomic<std::size_t> *m_intermediates_counter;
-    std::atomic<std::size_t> *m_outputs_counter;
-    std::atomic<std::size_t> *m_pair_counter;
+  pthread_barrier_t m_shuffle_barrier;
+  pthread_cond_t m_exit_condition;
+  pthread_mutex_t m_exit_run_join_mutex;
+  std::atomic<std::size_t>* m_intermediates_counter;
+  std::atomic<std::size_t>* m_outputs_counter;
+  std::atomic<std::size_t>* m_pair_counter;
 
-    pthread_cond_t m_reduce_condition;
-    pthread_mutex_t m_procede_to_reduce_mutex;
+  pthread_cond_t m_reduce_condition;
+  pthread_mutex_t m_procede_to_reduce_mutex;
 
-    bool m_exited;
-    bool m_procede_to_reduce;
+  bool m_exited;
+  bool m_procede_to_reduce;
 };
 
 #endif // __JOB_HPP_INCLUDED

@@ -1,8 +1,8 @@
 #include <algorithm>
 
 #include "job.hpp"
-#include "worker.hpp"
 #include "pdebug.hpp"
+#include "worker.hpp"
 
 #ifndef UNUSED
 #define UNUSED(x) ((void)x)
