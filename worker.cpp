@@ -2,6 +2,7 @@
 
 #include "job.hpp"
 #include "worker.hpp"
+#include "pdebug.hpp"
 
 #ifndef UNUSED
 #define UNUSED(x) ((void)x)
@@ -37,11 +38,10 @@ Worker::Worker(int thread_id,
   , m_outputs_counter(outputs_counter)
   , m_job(job)
 {
-  printf("Worker (address %p) thread id = %d, m_id = %d\n",
+  pdebug("Worker (address %p) thread id = %d, m_id = %d\n",
          (void*)this,
          thread_id,
          m_id);
-  fflush(stdout);
   (void)pthread_create(
     &m_thread_handle, NULL, worker_entry_point, static_cast<void*>(this));
 }
@@ -61,8 +61,7 @@ worker_entry_point(void* arg)
    * wait for all workers to finish the sort phase.
    */
   pthread_barrier_wait(&worker->m_job->m_shuffle_barrier);
-  printf("thread #%d passed the barrier\n", worker->m_id);
-  fflush(stdout);
+  pdebug("thread #%d passed the barrier\n", worker->m_id);
 
   pthread_mutex_lock(&worker->m_job->m_procede_to_reduce_mutex);
 
@@ -94,8 +93,7 @@ worker_entry_point(void* arg)
 void
 map_phase(Worker* worker)
 {
-  printf("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
-  fflush(stdout);
+  pdebug("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
 
   std::size_t pair_index = worker->m_job->m_pair_counter->fetch_add(1);
 
@@ -119,8 +117,7 @@ operator<(const IntermediatePair& a, const IntermediatePair& b)
 void
 sort_phase(Worker* worker)
 {
-  printf("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
-  fflush(stdout);
+  pdebug("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
 
   std::sort(worker->m_intermediates.begin(), worker->m_intermediates.end());
 }
@@ -146,8 +143,7 @@ is_key_in_vector(const IntermediateVec& vec, const K2& key)
 void
 shuffle_phase(Worker* worker)
 {
-  printf("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
-  fflush(stdout);
+  pdebug("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
 
   IntermediateVec shuffled;
 
@@ -168,6 +164,5 @@ shuffle_phase(Worker* worker)
 void
 reduce_phase(Worker* worker)
 {
-  printf("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
-  fflush(stdout);
+  pdebug("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
 }

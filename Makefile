@@ -1,4 +1,4 @@
-AUXILIARY_SOURCES := worker.cpp job.cpp
+AUXILIARY_SOURCES := worker.cpp job.cpp pdebug.cpp
 AUXILIARY_HEADERS := ${AUXILIARY_SOURCES:.cpp=.hpp}
 SOURCES := MapReduceFramework.cpp $(AUXILIARY_SOURCES)
 LIBRARY := libMapReduceFramework.a
@@ -10,7 +10,7 @@ TARGET := target
 CXX := g++
 AR := ar
 RANLIB := ranlib
-CXXFLAGS := -Werror -Wextra -Wall -std=c++11 -g -pedantic
+CXXFLAGS := -Werror -Wextra -Wall -std=c++11 -pedantic
 LDFLAGS := -pthread
 CLANG_FORMAT_FLAGS := --style=Mozilla -i
 FILES_TO_SUBMIT := Makefile README $(AUXILIARY_SOURCES) $(AUXILIARY_HEADERS) MapReduceFramework.cpp
@@ -22,6 +22,9 @@ SUBMISION_FILE := ${SUBMISION_NAME:=.tar}
 $(LIBRARY): $(OBJECTS)
 	$(AR) rcs $@  $^
 	$(RANLIB) $@
+
+debug: CXXFLAGS += -g -O0 -DDEBUG
+debug: all
 
 all: $(TARGET)
 
