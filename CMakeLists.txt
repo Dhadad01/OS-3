@@ -7,6 +7,8 @@ add_executable(
   os_ex3
   main.cpp
   MapReduceClient.h
+        pdebug.cpp
+        pdebug.hpp
   MapReduceFramework.h
   MapReduceFramework.cpp
   job.hpp

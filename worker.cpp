@@ -34,10 +34,10 @@ Worker::Worker (int thread_id,
     m_shuffle_barrier (shuffle_barrier), m_intermediates_counter (counter),
     m_outputs_counter (outputs_counter), m_job (job)
 {
-  pdebug ("Worker (address %p) thread id = %d, m_id = %d\n",
-          (void *) this,
-          thread_id,
-          m_id);
+//  pdebug ("Worker (address %p) thread id = %d, m_id = %d\n",
+//          (void *) this,
+//          thread_id,
+//          m_id);
   (void) pthread_create (
       &m_thread_handle, NULL, worker_entry_point, static_cast<void *>(this));
 }
@@ -185,12 +185,16 @@ reduce_phase (Worker *worker)
   size_t start = worker->m_job->m_outputs_counter->fetch_add (1);
 
   IntermediateVec intermediate_vec;
-  for (size_t i = worker->m_job->m_index_vec[start]; i <
-  worker->m_job->m_index_vec[start+1]; ++i)
-  {
-    intermediate_vec.push_back (worker->m_job->m_shuffled[i]);
-
+  if (start<worker->m_job->m_index_vec.size()){
+    for (size_t i = worker->m_job->m_index_vec[start]; i <
+    worker->m_job->m_index_vec[start+1]; ++i)
+    {
+      intermediate_vec.push_back (worker->m_job->m_shuffled[i]);
+    }
+    //const shit
+    worker->m_job->m_client.reduce(intermediate_vec,static_cast<void *>
+    (worker));
   }
-//  worker->m_job->m_client.reduce(intermediate_vec,static_cast<void *>
-//  (worker));
+
+
 }
