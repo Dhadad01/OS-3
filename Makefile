@@ -12,7 +12,7 @@ AR := ar
 RANLIB := ranlib
 CXXFLAGS := -Werror -Wextra -Wall -std=c++11 -pedantic
 LDFLAGS := -pthread
-CLANG_FORMAT_FLAGS := --style=Mozilla -i
+CLANG_FORMAT_FLAGS := --style=file:.clang-format -i
 FILES_TO_SUBMIT := Makefile README $(AUXILIARY_SOURCES) $(AUXILIARY_HEADERS) MapReduceFramework.cpp
 SUBMISION_NAME := ex3
 SUBMISION_FILE := ${SUBMISION_NAME:=.tar}
