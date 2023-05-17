@@ -31,6 +31,8 @@ public:
   pthread_barrier_t m_shuffle_barrier;
   pthread_cond_t m_exit_condition;
   pthread_mutex_t m_exit_run_join_mutex;
+  pthread_mutex_t m_push_to_outputs_mutex;
+
   std::atomic<std::size_t>* m_intermediates_counter;
   std::atomic<std::size_t>* m_outputs_counter;
   std::atomic<std::size_t>* m_pair_counter;

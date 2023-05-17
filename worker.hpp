@@ -24,6 +24,7 @@ public:
          Job* job);
 
   // Worker(Worker &) = delete;
+  ~Worker();
 
   int m_id;
   pthread_t m_thread_handle;
@@ -32,7 +33,6 @@ public:
   const InputVec& m_inputs;
 
   IntermediateVec m_intermediates;
-  OutputVec m_outputs;
   pthread_barrier_t* m_shuffle_barrier;
   std::atomic<std::size_t>* m_intermediates_counter;
   std::atomic<std::size_t>* m_outputs_counter;

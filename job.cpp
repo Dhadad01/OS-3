@@ -1,4 +1,5 @@
 #include "job.hpp"
+#include "pdebug.hpp"
 
 #ifndef UNUSED
 #define UNUSED(x) ((void)x)
@@ -17,6 +18,7 @@ Job::Job(const MapReduceClient& client,
   m_intermediates_counter = new std::atomic<std::size_t>(0);
   m_outputs_counter = new std::atomic<std::size_t>(0);
   m_pair_counter = new std::atomic<std::size_t>(0);
+
   m_progress = new std::atomic<std::size_t>(0);
 
   (void)pthread_mutex_init(&m_exit_run_join_mutex, NULL);
@@ -26,6 +28,8 @@ Job::Job(const MapReduceClient& client,
 
   (void)pthread_mutex_init(&m_procede_to_reduce_mutex, NULL);
   (void)pthread_cond_init(&m_reduce_condition, NULL);
+
+  (void)pthread_mutex_init(&m_push_to_outputs_mutex, NULL);
 
   /*
    * lastly create the threads so all the locks, condition variables, etc are
@@ -47,9 +51,18 @@ Job::Job(const MapReduceClient& client,
 
 Job::~Job()
 {
+  pdebug("%s: destructor called for job at %p\n", __FUNCTION__, this);
+
   /*
-   * TODO: destroy all semapjores, mutexes, condition variables, etc...
+   * delete all workers.
    */
+  for (size_t i = 0; i < m_workers.size(); i++) {
+    Worker* w = m_workers[i];
+    m_workers[i] = nullptr;
+    delete w;
+  }
+
+  (void)pthread_mutex_destroy(&m_push_to_outputs_mutex);
   (void)pthread_mutex_destroy(&m_exit_run_join_mutex);
   (void)pthread_cond_destroy(&m_exit_condition);
 
@@ -66,14 +79,6 @@ Job::~Job()
 
   delete m_progress;
   m_progress = nullptr;
-
-  /*
-   * delete all workers.
-   */
-  for (size_t i = 0; i < m_workers.size(); i++) {
-    delete m_workers[i];
-    m_workers[i] = nullptr;
-  }
 }
 
 void

@@ -3,6 +3,7 @@
 
 #include <vector>  //std::vector
 #include <utility> //std::pair
+#include <string>
 
 // input key and value.
 // the key, value for the map function and the MapReduceFramework
@@ -23,6 +24,7 @@ class K2 {
 public:
 	virtual ~K2(){}
 	virtual bool operator<(const K2 &other) const = 0;
+    virtual  operator std::string() const = 0;
 };
 
 class V2 {
@@ -36,6 +38,7 @@ class K3 {
 public:
 	virtual ~K3()  {}
 	virtual bool operator<(const K3 &other) const = 0;
+    virtual  operator std::string() const = 0;
 };
 
 class V3 {

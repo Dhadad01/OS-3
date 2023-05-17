@@ -13,6 +13,7 @@
 #include "MapReduceFramework.h"
 
 #include "job.hpp"
+#include "pdebug.hpp"
 
 #ifndef UNUSED
 #define UNUSED(x) ((void)x)
@@ -48,6 +49,8 @@ void
 closeJobHandle(JobHandle job)
 {
   Job* j = static_cast<Job*>(job);
+
+  pdebug("%s: closing job (at %p)\n", __FUNCTION__, j);
 
   delete j;
 }
@@ -101,7 +104,9 @@ emit3(K3* key, V3* value, void* context)
 {
   Worker* worker = static_cast<Worker*>(context);
 
-  worker->m_outputs.push_back(OutputPair(key, value));
+  (void)pthread_mutex_lock(&worker->m_job->m_push_to_outputs_mutex);
+  worker->m_job->m_outputs.push_back(OutputPair(key, value));
+  (void)pthread_mutex_unlock(&worker->m_job->m_push_to_outputs_mutex);
 
   /*
    * increment the atomic counter using it's operator++.
