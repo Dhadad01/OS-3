@@ -38,7 +38,6 @@ public:
   IntermediateVec m_shuffled;
   std::vector<size_t> m_index_vec;
 
-
   pthread_cond_t m_reduce_condition;
   pthread_mutex_t m_procede_to_reduce_mutex;
 
