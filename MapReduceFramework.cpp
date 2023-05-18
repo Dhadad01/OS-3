@@ -19,6 +19,8 @@
 #define UNUSED(x) ((void)x)
 #endif // UNUSED
 
+static void exit_on_error(int status, const std::string &text);
+
 void
 getJobState(JobHandle job, JobState* state)
 {
@@ -59,6 +61,7 @@ void
 waitForJob(JobHandle job)
 {
   static const int LOCKED = 0;
+  int status;
   Job* j = static_cast<Job*>(job);
 
   if (j != nullptr) {
@@ -67,15 +70,19 @@ waitForJob(JobHandle job)
 
         // calling pthread_join is critical section.V
         for (const Worker* w : j->m_workers) {
-          (void)pthread_join(w->m_thread_handle, NULL);
+          status = pthread_join(w->m_thread_handle, NULL);
+            exit_on_error(status, "phread_join failed");
         }
         j->m_exited = true;
-        (void)pthread_cond_broadcast(&j->m_exit_condition);
+          status = pthread_cond_broadcast(&j->m_exit_condition);
+          exit_on_error(status, "pthread_cond_broadcast failed");
 
-        pthread_mutex_unlock(&j->m_exit_run_join_mutex);
+          status = pthread_mutex_unlock(&j->m_exit_run_join_mutex);
+          exit_on_error(status, "pthread_mutex_unlock failed");
       } else {
-        (void)pthread_cond_wait(&j->m_exit_condition,
+          status = pthread_cond_wait(&j->m_exit_condition,
                                 &j->m_exit_run_join_mutex);
+          exit_on_error(status, "pthread_cond_wait failed");
       }
     }
 
@@ -105,14 +112,24 @@ void
 emit3(K3* key, V3* value, void* context)
 {
   Worker* worker = static_cast<Worker*>(context);
+  int status;
 
-  (void)pthread_mutex_lock(&worker->m_job->m_push_to_outputs_mutex);
+    status = pthread_mutex_lock(&worker->m_job->m_push_to_outputs_mutex);
+    exit_on_error(status, "pthread_mutex_lock failed");
   worker->m_job->m_outputs.push_back(OutputPair(key, value));
-  (void)pthread_mutex_unlock(&worker->m_job->m_push_to_outputs_mutex);
+    status = pthread_mutex_unlock(&worker->m_job->m_push_to_outputs_mutex);
+    exit_on_error(status, "pthread_mutex_unlock failed");
 
   /*
    * increment the atomic counter using it's operator++.
    */
   //  size_t prev_value = worker->m_outputs_counter->fetch_add(1);
   // UNUSED(prev_value);
+}
+
+void exit_on_error(int status, const std::string &text) {
+    if (status != 0) {
+        printf("system error: %s\n", text.c_str());
+        std::exit(1);
+    }
 }

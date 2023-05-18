@@ -11,6 +11,10 @@
 #define UNUSED(x) ((void)x)
 #endif // UNUSED
 
+#include <cstdlib>
+
+static void exit_on_error(int status, const std::string &text);
+
 static void
 map_phase(Worker* worker);
 
@@ -45,8 +49,9 @@ Worker::Worker(int thread_id,
   //          (void *) this,
   //          thread_id,
   //          m_id);
-  (void)pthread_create(
+  int status = pthread_create(
     &m_thread_handle, NULL, worker_entry_point, static_cast<void*>(this));
+  exit_on_error(status, "pthread_create failed");
 }
 
 Worker::~Worker()
@@ -70,6 +75,7 @@ void*
 worker_entry_point(void* arg)
 {
   Worker* worker = static_cast<Worker*>(arg);
+  int status;
 
   //    printf("%s - worker is %p, worker #%d\n", __FUNCTION__, arg,
   //    worker->m_id); fflush(stdout);
@@ -80,15 +86,17 @@ worker_entry_point(void* arg)
   /*
    * wait for all workers to finish the sort phase.
    */
-  pthread_barrier_wait(&worker->m_job->m_shuffle_barrier);
+  status = pthread_barrier_wait(&worker->m_job->m_shuffle_barrier);
+  exit_on_error(status, "pthread_barrier_wait failed");
   pdebug("thread #%d passed the barrier\n", worker->m_id);
 
-  pthread_mutex_lock(&worker->m_job->m_procede_to_reduce_mutex);
+    status = pthread_mutex_lock(&worker->m_job->m_procede_to_reduce_mutex);
 
   if (worker->m_id != 0) {
     if (not worker->m_job->m_procede_to_reduce) {
-      pthread_cond_wait(&worker->m_job->m_reduce_condition,
+        status = pthread_cond_wait(&worker->m_job->m_reduce_condition,
                         &worker->m_job->m_procede_to_reduce_mutex);
+        exit_on_error(status, "pthread_cond_wait failed");
     }
   } else {
     /*
@@ -101,10 +109,12 @@ worker_entry_point(void* arg)
      */
     worker->m_job->m_outputs_counter->store(0);
     worker->m_job->m_procede_to_reduce = true;
-    pthread_cond_broadcast(&worker->m_job->m_reduce_condition);
+      status = pthread_cond_broadcast(&worker->m_job->m_reduce_condition);
+      exit_on_error(status, "pthread_cond_broadcast failed");
   }
 
-  pthread_mutex_unlock(&worker->m_job->m_procede_to_reduce_mutex);
+    status = pthread_mutex_unlock(&worker->m_job->m_procede_to_reduce_mutex);
+    exit_on_error(status, "pthread_mutex_unlock failed");
 
   reduce_phase(worker);
 
@@ -255,4 +265,11 @@ reduce_phase(Worker* worker)
   }
 
   vec_index = nullptr;
+}
+
+void exit_on_error(int status, const std::string &text) {
+    if (status != 0) {
+        printf("system error: %s\n", text.c_str());
+        std::exit(1);
+    }
 }
