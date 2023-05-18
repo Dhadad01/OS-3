@@ -181,7 +181,9 @@ shuffle_phase(Worker* worker)
   worker->m_job->m_stage = SHUFFLE_STAGE;
 
   IntermediateVec& shuffled = worker->m_job->m_shuffled;
-  std::vector<size_t>& index_vec = worker->m_job->m_index_vec;
+  //  std::vector<size_t>& index_vec = worker->m_job->m_index_vec;
+  std::vector<size_t> index_vec;
+  std::vector<IntermediateVec>& splits = worker->m_job->m_intermediate_splits;
 
   for (const Worker* w : worker->m_job->m_workers) {
     std::copy(w->m_intermediates.begin(),
@@ -198,6 +200,26 @@ shuffle_phase(Worker* worker)
       curkey_monster = shuffled[i].first;
     }
   }
+
+  size_t start = 0;
+  size_t end = start + 1;
+  while (end < index_vec.size()) {
+    IntermediateVec slice;
+    slice.insert(
+      slice.end(), &shuffled[index_vec[start]], &shuffled[index_vec[end]]);
+    splits.push_back(slice); // important - this must be a copy.
+    start++;
+    end++;
+  }
+  /*
+   * handle the last key.
+   */
+  if (end == index_vec.size()) {
+    IntermediateVec slice;
+    slice.insert(
+      slice.end(), shuffled.begin() + index_vec[start], shuffled.end());
+    splits.push_back(slice); // important - this must be a copy.
+  }
 }
 
 void
@@ -206,77 +228,31 @@ reduce_phase(Worker* worker)
   pdebug("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
   worker->m_job->m_stage = REDUCE_STAGE;
 
-  IntermediateVec intermediate_vec;
-  IntermediateVec& shuffled = worker->m_job->m_shuffled;
-  std::vector<size_t>& index_vec = worker->m_job->m_index_vec;
+  std::atomic<size_t>* vec_index = worker->m_job->m_outputs_counter;
+  std::vector<IntermediateVec>& splits = worker->m_job->m_intermediate_splits;
 
-  std::atomic<size_t> idx(0);
-  UNUSED(idx);
+  size_t i;
 
-  size_t start = worker->m_job->m_outputs_counter->fetch_add(1);
-  // start = start / 2;
-  size_t end = start + 1;
-
-  /*
-   * the size of the m_index_vec might be greater than the number of workers.
-   * therefor each & every worker shall try to reduce as many pairs as possible.
-   * using an atomic variable for the distribution of pairs eliminates the risk
-   * of distributing the same pair to more than 1 worker.
-   *
-   * since every element in m_index_vec is both a start & end for different keys
-   * we shall "double" it's size.
-   * by integer dividing start with 2 each element of index_vec is picked as
-   * both start & at the next iteration as end.
-   */
-  while (end < index_vec.size()) {
-#ifdef DEBUG
-    pdebug("%s (worker #%d) proccessing intermidiates[%d:%d]\n",
+  for (i = vec_index->fetch_add(1); i < splits.size();
+       i = vec_index->fetch_add(1)) {
+    pdebug("%s: [worker #%d] i = %lu (atomic); splits size is %lu\n",
            __FUNCTION__,
            worker->m_id,
-           start,
-           end);
-#endif
-    intermediate_vec.insert(intermediate_vec.end(),
-                            &shuffled[index_vec[start]],
-                            &shuffled[index_vec[end]]);
-    worker->m_job->m_client.reduce(&intermediate_vec,
-                                   static_cast<void*>(worker));
-
-#ifdef DEBUG
-    size_t tmp = idx.fetch_add(1);
-    pdebug("%s outputs <%c (%d)|%d> \n",
+           i,
+           splits.size());
+    pdebug("%s: [worker #%d] atomic before reduce %lu\n",
            __FUNCTION__,
-           ((KChar*)worker->m_job->m_outputs[tmp].first)->c,
-           (int)((KChar*)worker->m_job->m_outputs[tmp].first)->c,
-           ((VCount*)worker->m_job->m_outputs[tmp].second)->count);
-#endif
+           worker->m_id,
+           vec_index->load());
+    worker->m_job->m_client.reduce(&splits[i], static_cast<void*>(worker));
+    pdebug("%s: [worker #%d] atomic after reduce %lu\n",
+           __FUNCTION__,
+           worker->m_id,
+           vec_index->load());
 
-    start = worker->m_job->m_outputs_counter->fetch_add(1);
-    // start = start / 2;
-    end = start + 1;
-    intermediate_vec.clear();
+    // increment progress counter.
     (void)worker->m_job->m_progress->fetch_add(1);
   }
 
-  /*
-   * handle the last key.
-   */
-  if (end == index_vec.size()) {
-    intermediate_vec.clear();
-    intermediate_vec.insert(intermediate_vec.end(),
-                            shuffled.begin() + index_vec[start],
-                            shuffled.end());
-    worker->m_job->m_client.reduce(&intermediate_vec,
-                                   static_cast<void*>(worker));
-#ifdef DEBUG
-    size_t tmp = idx.fetch_add(1);
-    pdebug("%s outputs <%c (%d)|%d> \n",
-           __FUNCTION__,
-           ((KChar*)worker->m_job->m_outputs[tmp].first)->c,
-           (int)((KChar*)worker->m_job->m_outputs[tmp].first)->c,
-           ((VCount*)worker->m_job->m_outputs[tmp].second)->count);
-#endif
-
-    (void)worker->m_job->m_progress->fetch_add(1);
-  }
+  vec_index = nullptr;
 }

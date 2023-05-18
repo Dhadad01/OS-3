@@ -78,11 +78,13 @@ waitForJob(JobHandle job)
                                 &j->m_exit_run_join_mutex);
       }
     }
-  }
 
-  /*
-   * Unite all outputs.
-   */
+#ifdef DEBUG
+#include <algorithm>
+
+    std::sort(j->m_outputs.begin(), j->m_outputs.end());
+#endif // DEBUG
+  }
 }
 
 void
@@ -111,6 +113,6 @@ emit3(K3* key, V3* value, void* context)
   /*
    * increment the atomic counter using it's operator++.
    */
-  size_t prev_value = worker->m_outputs_counter->fetch_add(1);
-  UNUSED(prev_value);
+  //  size_t prev_value = worker->m_outputs_counter->fetch_add(1);
+  // UNUSED(prev_value);
 }

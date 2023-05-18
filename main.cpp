@@ -46,7 +46,7 @@
 //   return NULL;
 // }
 
-#define NUM_OF_THREADS 2
+#define NUM_OF_THREADS 8
 
 int
 main()

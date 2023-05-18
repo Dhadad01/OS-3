@@ -38,7 +38,8 @@ public:
   std::atomic<std::size_t>* m_pair_counter;
   std::atomic<std::size_t>* m_progress;
   IntermediateVec m_shuffled;
-  std::vector<size_t> m_index_vec;
+  std::vector<IntermediateVec> m_intermediate_splits;
+  //  std::vector<size_t> m_index_vec;
 
   pthread_cond_t m_reduce_condition;
   pthread_mutex_t m_procede_to_reduce_mutex;
