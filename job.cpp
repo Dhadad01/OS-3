@@ -85,5 +85,20 @@ void
 Job::save_state_to(JobState* state)
 {
   state->stage = m_stage;
-  state->percentage = float(m_progress->load()) / float(m_workers.size());
+  float progress = float(m_progress->load());
+
+//  state->percentage = float(m_progress->load()) / float(m_workers.size());
+  switch(state->stage) {
+      case MAP_STAGE:
+          state->percentage = progress / float(m_inputs.size());
+          break;
+      case SHUFFLE_STAGE:
+          state->percentage = 0;
+          break;
+      case REDUCE_STAGE:
+          state->percentage = progress / float(m_intermediate_splits.size());
+          break;
+      default:
+          break;
+  }
 }
