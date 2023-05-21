@@ -33,7 +33,8 @@ reduce_phase(Worker* worker);
 static void*
 worker_entry_point(void* arg);
 
-static void move_stage(Worker *worker, stage_t stage);
+static void
+move_stage(Worker* worker, stage_t stage);
 
 Worker::Worker(int thread_id,
                const MapReduceClient& client,
@@ -117,15 +118,15 @@ worker_entry_point(void* arg)
      */
     shuffle_phase(worker);
 
-//      printf("shuffle is done!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    //      printf("shuffle is done!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
     /*
      * signal to all workers that they can proceed to the reduce phase.
      */
     worker->m_job->m_outputs_counter->store(0);
     worker->m_job->m_procede_to_reduce = true;
-//    worker->m_job->m_stage = REDUCE_STAGE;
-//    (void)worker->m_job->m_progress->store(0);
-      move_stage(worker, REDUCE_STAGE);
+    //    worker->m_job->m_stage = REDUCE_STAGE;
+    //    (void)worker->m_job->m_progress->store(0);
+    move_stage(worker, REDUCE_STAGE);
     status = pthread_cond_broadcast(&worker->m_job->m_reduce_condition);
     exit_on_error(status, "pthread_cond_broadcast failed");
   }
@@ -142,8 +143,8 @@ void
 map_phase(Worker* worker)
 {
   pdebug("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
-//  worker->m_job->m_stage = MAP_STAGE;
-//    move_stage(worker, MAP_STAGE);
+  //  worker->m_job->m_stage = MAP_STAGE;
+  //    move_stage(worker, MAP_STAGE);
 
   std::size_t pair_index = worker->m_job->m_pair_counter->fetch_add(1);
 
@@ -205,10 +206,9 @@ shuffle_phase(Worker* worker)
 {
 
   pdebug("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
-//  worker->m_job->m_progress->store(0);
-//  worker->m_job->m_stage = SHUFFLE_STAGE;
-    move_stage(worker, SHUFFLE_STAGE);
-
+  //  worker->m_job->m_progress->store(0);
+  //  worker->m_job->m_stage = SHUFFLE_STAGE;
+  move_stage(worker, SHUFFLE_STAGE);
 
   IntermediateVec& shuffled = worker->m_job->m_shuffled;
   //  std::vector<size_t>& index_vec = worker->m_job->m_index_vec;
@@ -256,7 +256,7 @@ void
 reduce_phase(Worker* worker)
 {
   pdebug("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
-//  worker->m_job->m_stage = REDUCE_STAGE;
+  //  worker->m_job->m_stage = REDUCE_STAGE;
 
   std::atomic<size_t>* vec_index = worker->m_job->m_outputs_counter;
   std::vector<IntermediateVec>& splits = worker->m_job->m_intermediate_splits;
@@ -300,11 +300,12 @@ exit_on_error(int status, const std::string& text)
   }
 }
 
-void move_stage(Worker *worker, stage_t stage)
+void
+move_stage(Worker* worker, stage_t stage)
 {
-    /*
-     * set stage & reset the counter as a single atomic operation.
-     */
-    size_t calc = ((size_t)stage) << ((sizeof(size_t) * 8) - 2);
-    worker->m_job->m_progress->store(calc);
+  /*
+   * set stage & reset the counter as a single atomic operation.
+   */
+  size_t calc = ((size_t)stage) << ((sizeof(size_t) * 8) - 2);
+  worker->m_job->m_progress->store(calc);
 }

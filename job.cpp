@@ -31,8 +31,8 @@ Job::Job(const MapReduceClient& client,
 
   (void)pthread_mutex_init(&m_push_to_outputs_mutex, NULL);
 
-    size_t calc = ((size_t)MAP_STAGE) << ((sizeof(size_t) * 8) - 2);
-    m_progress->store(calc);
+  size_t calc = ((size_t)MAP_STAGE) << ((sizeof(size_t) * 8) - 2);
+  m_progress->store(calc);
 
   /*
    * lastly create the threads so all the locks, condition variables, etc are
@@ -84,17 +84,18 @@ Job::~Job()
   m_progress = nullptr;
 }
 
-//void Job::print(void) const
+// void Job::print(void) const
 //{
-//    printf("%s: stage: %d, progress: %lu\n", __FUNCTION__, m_stage, m_progress->load());
-//}
+//     printf("%s: stage: %d, progress: %lu\n", __FUNCTION__, m_stage,
+//     m_progress->load());
+// }
 
 void
 Job::save_state_to(JobState* state)
 {
   size_t progress_and_state = m_progress->load();
   state->stage = (stage_t)((progress_and_state >> 62) & 0x3);
-    //state->stage = m_stage;
+  // state->stage = m_stage;
   float progress = float((progress_and_state << 2) >> 2);
 
   //  state->percentage = float(m_progress->load()) / float(m_workers.size());
@@ -106,7 +107,8 @@ Job::save_state_to(JobState* state)
       state->percentage = 0;
       break;
     case REDUCE_STAGE:
-      state->percentage = (100.0 * float(progress)) / float(m_intermediate_splits.size());
+      state->percentage =
+        (100.0 * float(progress)) / float(m_intermediate_splits.size());
       break;
     default:
       break;
