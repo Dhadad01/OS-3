@@ -6,6 +6,7 @@
 #include <atomic>
 #include <pthread.h>
 #include <stdio.h>
+#include <string>
 #include <unistd.h> // for usleep
 #include <vector>
 
@@ -19,14 +20,15 @@
 #define UNUSED(x) ((void)x)
 #endif // UNUSED
 
-static void exit_on_error(int status, const std::string &text);
+static void
+exit_on_error(int status, const std::string& text);
 
 void
 getJobState(JobHandle job, JobState* state)
 {
   Job* j = static_cast<Job*>(job);
 
-  if (!j and !state) {
+  if (j and state) {
     j->save_state_to(state);
   }
 }
@@ -54,6 +56,8 @@ closeJobHandle(JobHandle job)
 
   pdebug("%s: closing job (at %p)\n", __FUNCTION__, j);
 
+  waitForJob(job);
+
   delete j;
 }
 
@@ -71,18 +75,18 @@ waitForJob(JobHandle job)
         // calling pthread_join is critical section.V
         for (const Worker* w : j->m_workers) {
           status = pthread_join(w->m_thread_handle, NULL);
-            exit_on_error(status, "phread_join failed");
+          exit_on_error(status, "phread_join failed");
         }
         j->m_exited = true;
-          status = pthread_cond_broadcast(&j->m_exit_condition);
-          exit_on_error(status, "pthread_cond_broadcast failed");
+        status = pthread_cond_broadcast(&j->m_exit_condition);
+        exit_on_error(status, "pthread_cond_broadcast failed");
 
-          status = pthread_mutex_unlock(&j->m_exit_run_join_mutex);
-          exit_on_error(status, "pthread_mutex_unlock failed");
+        status = pthread_mutex_unlock(&j->m_exit_run_join_mutex);
+        exit_on_error(status, "pthread_mutex_unlock failed");
       } else {
-          status = pthread_cond_wait(&j->m_exit_condition,
-                                &j->m_exit_run_join_mutex);
-          exit_on_error(status, "pthread_cond_wait failed");
+        status =
+          pthread_cond_wait(&j->m_exit_condition, &j->m_exit_run_join_mutex);
+        exit_on_error(status, "pthread_cond_wait failed");
       }
     }
 
@@ -114,11 +118,11 @@ emit3(K3* key, V3* value, void* context)
   Worker* worker = static_cast<Worker*>(context);
   int status;
 
-    status = pthread_mutex_lock(&worker->m_job->m_push_to_outputs_mutex);
-    exit_on_error(status, "pthread_mutex_lock failed");
+  status = pthread_mutex_lock(&worker->m_job->m_push_to_outputs_mutex);
+  exit_on_error(status, "pthread_mutex_lock failed");
   worker->m_job->m_outputs.push_back(OutputPair(key, value));
-    status = pthread_mutex_unlock(&worker->m_job->m_push_to_outputs_mutex);
-    exit_on_error(status, "pthread_mutex_unlock failed");
+  status = pthread_mutex_unlock(&worker->m_job->m_push_to_outputs_mutex);
+  exit_on_error(status, "pthread_mutex_unlock failed");
 
   /*
    * increment the atomic counter using it's operator++.
@@ -127,9 +131,11 @@ emit3(K3* key, V3* value, void* context)
   // UNUSED(prev_value);
 }
 
-void exit_on_error(int status, const std::string &text) {
-    if (status != 0) {
-        printf("system error: %s\n", text.c_str());
-        std::exit(1);
-    }
+void
+exit_on_error(int status, const std::string& text)
+{
+  if (status != 0) {
+    printf("system error: %s\n", text.c_str());
+    std::exit(1);
+  }
 }

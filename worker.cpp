@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <cerrno>
+#include <cstring>
 #include <string>
 
 #include "job.hpp"
@@ -13,7 +15,8 @@
 
 #include <cstdlib>
 
-static void exit_on_error(int status, const std::string &text);
+static void
+exit_on_error(int status, const std::string& text);
 
 static void
 map_phase(Worker* worker);
@@ -29,6 +32,8 @@ reduce_phase(Worker* worker);
 
 static void*
 worker_entry_point(void* arg);
+
+static void move_stage(Worker *worker, stage_t stage);
 
 Worker::Worker(int thread_id,
                const MapReduceClient& client,
@@ -87,16 +92,24 @@ worker_entry_point(void* arg)
    * wait for all workers to finish the sort phase.
    */
   status = pthread_barrier_wait(&worker->m_job->m_shuffle_barrier);
-  exit_on_error(status, "pthread_barrier_wait failed");
+  if (status != 0 and status != PTHREAD_BARRIER_SERIAL_THREAD) {
+    printf("system error: [worker #%d] pthread_barrier_wait failed with error "
+           "%s (%d), status is: %d\n",
+           worker->m_id,
+           std::strerror(errno),
+           errno,
+           status);
+    std::exit(1);
+  }
   pdebug("thread #%d passed the barrier\n", worker->m_id);
 
-    status = pthread_mutex_lock(&worker->m_job->m_procede_to_reduce_mutex);
+  status = pthread_mutex_lock(&worker->m_job->m_procede_to_reduce_mutex);
 
   if (worker->m_id != 0) {
     if (not worker->m_job->m_procede_to_reduce) {
-        status = pthread_cond_wait(&worker->m_job->m_reduce_condition,
-                        &worker->m_job->m_procede_to_reduce_mutex);
-        exit_on_error(status, "pthread_cond_wait failed");
+      status = pthread_cond_wait(&worker->m_job->m_reduce_condition,
+                                 &worker->m_job->m_procede_to_reduce_mutex);
+      exit_on_error(status, "pthread_cond_wait failed");
     }
   } else {
     /*
@@ -104,17 +117,21 @@ worker_entry_point(void* arg)
      */
     shuffle_phase(worker);
 
+//      printf("shuffle is done!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
     /*
      * signal to all workers that they can proceed to the reduce phase.
      */
     worker->m_job->m_outputs_counter->store(0);
     worker->m_job->m_procede_to_reduce = true;
-      status = pthread_cond_broadcast(&worker->m_job->m_reduce_condition);
-      exit_on_error(status, "pthread_cond_broadcast failed");
+//    worker->m_job->m_stage = REDUCE_STAGE;
+//    (void)worker->m_job->m_progress->store(0);
+      move_stage(worker, REDUCE_STAGE);
+    status = pthread_cond_broadcast(&worker->m_job->m_reduce_condition);
+    exit_on_error(status, "pthread_cond_broadcast failed");
   }
 
-    status = pthread_mutex_unlock(&worker->m_job->m_procede_to_reduce_mutex);
-    exit_on_error(status, "pthread_mutex_unlock failed");
+  status = pthread_mutex_unlock(&worker->m_job->m_procede_to_reduce_mutex);
+  exit_on_error(status, "pthread_mutex_unlock failed");
 
   reduce_phase(worker);
 
@@ -125,7 +142,8 @@ void
 map_phase(Worker* worker)
 {
   pdebug("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
-  worker->m_job->m_stage = MAP_STAGE;
+//  worker->m_job->m_stage = MAP_STAGE;
+//    move_stage(worker, MAP_STAGE);
 
   std::size_t pair_index = worker->m_job->m_pair_counter->fetch_add(1);
 
@@ -187,8 +205,10 @@ shuffle_phase(Worker* worker)
 {
 
   pdebug("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
-  worker->m_job->m_progress->store(0);
-  worker->m_job->m_stage = SHUFFLE_STAGE;
+//  worker->m_job->m_progress->store(0);
+//  worker->m_job->m_stage = SHUFFLE_STAGE;
+    move_stage(worker, SHUFFLE_STAGE);
+
 
   IntermediateVec& shuffled = worker->m_job->m_shuffled;
   //  std::vector<size_t>& index_vec = worker->m_job->m_index_vec;
@@ -236,7 +256,7 @@ void
 reduce_phase(Worker* worker)
 {
   pdebug("thread #%d reached phase %s\n", worker->m_id, __FUNCTION__);
-  worker->m_job->m_stage = REDUCE_STAGE;
+//  worker->m_job->m_stage = REDUCE_STAGE;
 
   std::atomic<size_t>* vec_index = worker->m_job->m_outputs_counter;
   std::vector<IntermediateVec>& splits = worker->m_job->m_intermediate_splits;
@@ -267,9 +287,24 @@ reduce_phase(Worker* worker)
   vec_index = nullptr;
 }
 
-void exit_on_error(int status, const std::string &text) {
-    if (status != 0) {
-        printf("system error: %s\n", text.c_str());
-        std::exit(1);
-    }
+void
+exit_on_error(int status, const std::string& text)
+{
+  if (status != 0) {
+    printf("system error: %s with error: %s (%d), status code: %d\n",
+           text.c_str(),
+           std::strerror(errno),
+           errno,
+           status);
+    std::exit(1);
+  }
+}
+
+void move_stage(Worker *worker, stage_t stage)
+{
+    /*
+     * set stage & reset the counter as a single atomic operation.
+     */
+    size_t calc = ((size_t)stage) << ((sizeof(size_t) * 8) - 2);
+    worker->m_job->m_progress->store(calc);
 }

@@ -22,6 +22,8 @@ public:
 
   void save_state_to(JobState* state);
 
+//  void print(void) const;
+
   const MapReduceClient& m_client;
   const InputVec& m_inputs;
   OutputVec& m_outputs;

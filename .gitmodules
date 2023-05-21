@@ -1,0 +1,3 @@
+[submodule "basic_test"]
+	path = basic_test
+	url = https://github.com/mattany/osex3basicTest.git

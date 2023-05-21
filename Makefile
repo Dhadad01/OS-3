@@ -3,7 +3,7 @@ AUXILIARY_HEADERS := ${AUXILIARY_SOURCES:.cpp=.hpp}
 SOURCES := MapReduceFramework.cpp $(AUXILIARY_SOURCES)
 LIBRARY := libMapReduceFramework.a
 OBJECTS := ${SOURCES:.cpp=.o}
-TARGET_SOURCES := main.cpp
+TARGET_SOURCES := test1.cpp
 TARGET_OBJECTS := ${TARGET_SOURCES:.cpp=.o}
 TARGET := target
 
