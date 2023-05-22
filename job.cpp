@@ -108,7 +108,7 @@ Job::save_state_to(JobState* state)
       break;
     case REDUCE_STAGE:
       state->percentage =
-        (100.0 * float(progress)) / float(m_intermediate_splits.size());
+        (100.0 * float(progress)) / float(m_shuffled.size());
       break;
     default:
       break;

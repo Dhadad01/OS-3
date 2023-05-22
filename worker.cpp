@@ -7,7 +7,7 @@
 #include "pdebug.hpp"
 #include "worker.hpp"
 
-#include "user_types.hpp"
+// #include "user_types.hpp"
 
 #ifndef UNUSED
 #define UNUSED(x) ((void)x)
@@ -281,7 +281,7 @@ reduce_phase(Worker* worker)
            vec_index->load());
 
     // increment progress counter.
-    (void)worker->m_job->m_progress->fetch_add(1);
+    (void)worker->m_job->m_progress->fetch_add(splits[i].size());
   }
 
   vec_index = nullptr;
@@ -309,3 +309,4 @@ move_stage(Worker* worker, stage_t stage)
   size_t calc = ((size_t)stage) << ((sizeof(size_t) * 8) - 2);
   worker->m_job->m_progress->store(calc);
 }
+
