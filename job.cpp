@@ -5,6 +5,9 @@
 #define UNUSED(x) ((void)x)
 #endif // UNUSED
 
+static void
+init_state(Job* job);
+
 Job::Job(const MapReduceClient& client,
          const InputVec& inputVec,
          OutputVec& outputVec,
@@ -15,6 +18,7 @@ Job::Job(const MapReduceClient& client,
   , m_exited(false)
   , m_procede_to_reduce(false)
 {
+  m_started = new std::atomic<std::size_t>(1);
   m_intermediates_counter = new std::atomic<std::size_t>(0);
   m_outputs_counter = new std::atomic<std::size_t>(0);
   m_pair_counter = new std::atomic<std::size_t>(0);
@@ -31,8 +35,7 @@ Job::Job(const MapReduceClient& client,
 
   (void)pthread_mutex_init(&m_push_to_outputs_mutex, NULL);
 
-  size_t calc = ((size_t)MAP_STAGE) << ((sizeof(size_t) * 8) - 2);
-  m_progress->store(calc);
+  init_state(this);
 
   /*
    * lastly create the threads so all the locks, condition variables, etc are
@@ -103,6 +106,10 @@ Job::save_state_to(JobState* state)
     case MAP_STAGE:
       state->percentage = (100.0 * float(progress)) / float(m_inputs.size());
       break;
+    case UNDEFINED_STAGE:
+      /*
+       * fallthrough
+       */
     case SHUFFLE_STAGE:
       state->percentage = 0;
       break;
@@ -112,4 +119,12 @@ Job::save_state_to(JobState* state)
     default:
       break;
   }
+}
+
+void
+init_state(Job* job)
+{
+  static const size_t calc = ((size_t)UNDEFINED_STAGE)
+                             << ((sizeof(size_t) * 8) - 2);
+  job->m_progress->store(calc);
 }

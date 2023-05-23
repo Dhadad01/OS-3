@@ -83,6 +83,14 @@ worker_entry_point(void* arg)
   Worker* worker = static_cast<Worker*>(arg);
   int status;
 
+  if (worker->m_job->m_started->fetch_and(0)) {
+    /*
+     * allow only one worker to set the stage to MAP_STAGE & clear the
+     * percentage calculations.
+     */
+    move_stage(worker, MAP_STAGE);
+  }
+
   //    printf("%s - worker is %p, worker #%d\n", __FUNCTION__, arg,
   //    worker->m_id); fflush(stdout);
   map_phase(worker);
@@ -309,4 +317,3 @@ move_stage(Worker* worker, stage_t stage)
   size_t calc = ((size_t)stage) << ((sizeof(size_t) * 8) - 2);
   worker->m_job->m_progress->store(calc);
 }
-
