@@ -85,6 +85,9 @@ Job::~Job()
 
   delete m_progress;
   m_progress = nullptr;
+
+  delete m_started;
+  m_started = nullptr;
 }
 
 // void Job::print(void) const
